@@ -21,7 +21,7 @@ Steps
    ```{bash}
    mkdir assets
    ```
-3. Download the [JS dependencies][#dependencies] and the [font file as well as
+3. Download the [JS dependencies](#dependencies) and the [font file as well as
    some sample data][data]. Place all of this in `assets/`
 4. Install the conda environment
    ```{bash}
