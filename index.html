@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>ACORN</title>
+
+    <!-- Knob info: https://g200kg.github.io/input-knobs/ -->
+    <script type="text/javascript" src="assets/input-knob.js"></script>
+    <script type="text/javascript" src="assets/papaparse.min.js"></script>
+    <script type="text/javascript" src="js/script.js"></script>
+
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        @font-face {
+            font-family: "NotoSans";
+            src: url("assets/NotoSansMono-Regular.ttf") format("ttf");
+        }
+        body {
+            font-family: "NotoStans", sans-serif;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div class="panel" style="display: flex;">
+        <div class="grid-container" id="dtmContainer"></div>
+        <div class="panel-right">
+            <h3>ACORN</h3>
+            <p>
+                An implementation of 
+                <a href="https://ieeexplore.ieee.org/document/4323077"
+                target="_blank">Giuliano (1963)</a>. A longer description and
+                demo notebook to come.
+            </p>
+            <label for="header-display"><b>Header Cell Text</b></label>
+            <div id="header-display"></div>
+            <form class="dtm-form" id="pageForm">
+                <label for="normBy"><b>Association Type</b></label>
+                <input
+                    type="range"
+                    class="input-knob"
+                    id="normBy"
+                    name="normBy"
+                    value="0.5"
+                    min="0.0001"
+                    max="1"
+                    step="0.01"
+                    data-diameter="64"
+                    data-fgcolor="#000"
+                    data-bgcolor="#888"
+                />
+                <div class="knob-values">
+                    <span id="knob-min">Narrow</span>
+                    <span id="knob-max">Free</span>
+                </div>
+            </form>
+            <label for="terms-displayed"><b>Selected Terms</b></label>
+            <ul id="terms-displayed"></ul>
+        </div>
+    </div>
+
+</body>
+
+    <script>
+        // Initialize global parameters
+        let csvData;
+        let queryMap = {};
+        let docAssoc;
+        const csvURL = "assets/borko.csv";
+        const form = document.getElementById("pageForm");
+        const knob = document.getElementById("normBy");
+
+        // Load and display the CSV via an async
+        (async () => {
+            try {
+                // Get the CSV
+                csvData = await loadCSV(csvURL);
+                // Build the query map and create an empty array of 0s sized to
+                // the number or rows in the CSV
+                queryMap = makeQueryMap(csvData);
+                docAssoc = Array(csvData.data.length).fill(0);
+                // Display the CSV
+                displayCSV(csvData);
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        })();
+
+        function compileForm() {
+            /*
+             * This is a simple helper function that adds the CSV data and
+             * query to the form before sending everything to the API
+             */
+            var formData = new FormData(form);
+            formData.append("csvData", JSON.stringify(csvData));
+            formData.append("query", JSON.stringify(Object.values(queryMap)));
+            submitForm(formData);
+        }
+
+        // Listen for activity on the form
+        form.addEventListener("submit", event => {
+            // Prevent an early form submission
+            event.preventDefault();
+            compileForm();
+        });
+
+        // Listen for activity on the knob
+        knob.addEventListener("input", () => {
+            compileForm();
+        })
+
+    </script>
+
+</html>
