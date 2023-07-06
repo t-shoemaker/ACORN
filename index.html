@@ -9,8 +9,11 @@
 
     <!-- Knob info: https://g200kg.github.io/input-knobs/ -->
     <script type="text/javascript" src="assets/input-knob.js"></script>
+    <!-- CSV parser: https://www.papaparse.com -->
     <script type="text/javascript" src="assets/papaparse.min.js"></script>
-    <script type="text/javascript" src="js/script.js"></script>
+    <!-- Local scripts -->
+    <script type="text/javascript" src="js/dataHandling.js"></script>
+    <script type="text/javascript" src="js/UI.js"></script>
 
     <link rel="stylesheet" href="css/style.css">
     <style>
@@ -66,10 +69,7 @@
 </body>
 
     <script>
-        // Initialize global parameters
-        let csvData;
-        let queryMap = {};
-        let docAssoc;
+        // Page-specific global parameters
         const csvURL = "assets/borko.csv";
         const form = document.getElementById("pageForm");
         const knob = document.getElementById("normBy");
@@ -79,8 +79,8 @@
             try {
                 // Get the CSV
                 csvData = await loadCSV(csvURL);
-                // Build the query map and create an empty array of 0s sized to
-                // the number or rows in the CSV
+                // Populate the queryMap and docAssoc. The latter is an empty
+                // array of 0s sized to the number of rows in the CSV
                 queryMap = makeQueryMap(csvData);
                 docAssoc = Array(csvData.data.length).fill(0);
                 // Display the CSV
@@ -89,17 +89,6 @@
                 console.error("Error:", error);
             }
         })();
-
-        function compileForm() {
-            /*
-             * This is a simple helper function that adds the CSV data and
-             * query to the form before sending everything to the API
-             */
-            var formData = new FormData(form);
-            formData.append("csvData", JSON.stringify(csvData));
-            formData.append("query", JSON.stringify(Object.values(queryMap)));
-            submitForm(formData);
-        }
 
         // Listen for activity on the form
         form.addEventListener("submit", event => {
@@ -112,7 +101,6 @@
         knob.addEventListener("input", () => {
             compileForm();
         })
-
     </script>
 
 </html>

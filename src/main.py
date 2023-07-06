@@ -46,7 +46,7 @@ def format_query(Q: str) -> np.ndarray:
         One-hot encoded query
     """
     Q = json.loads(Q)
-    Q = np.array([int(cell) for cell in Q])
+    Q = np.asarray(Q, dtype=int)
 
     return Q
 

@@ -1,38 +1,8 @@
-const URL = "http://localhost:5000/process-form";
-
-async function loadCSV(csvURL) {
-    /*
-     * Load a CSV
-     * Returns a Papa Parse CSV object
-     * @param {string} csvURL - Location of the CSV
-     */
-    var response = await fetch(csvURL);
-    var csvData = await response.text();
-
-    return Papa.parse(csvData, { header: true });
-}
-
-function makeQueryMap(csvData) {
-    /*
-     * Build the query map
-     * Returns a query map of {headerCell : false} values
-     * @param {Object} csvData - Papa Parse CSV
-     */
-    var queryMap = {}
-    var headers = csvData.meta.fields;
-    headers.forEach((header) => {
-        queryMap[header.trim()] = false;
-    });
-
-    return queryMap;
-}
-
 async function displayCSV(csvData) {
     /*
      * Display the CSV as an HTML grid
      * The table treats header row cells separately from the rest of the cells,
-     * adding a listener for each one that flips its associated queryMap value
-     * on/off
+     * adding multiple listeners to handle UI components
      * @param {Object} csvData - Papa Parse CSV
      */
     var headers = csvData.meta.fields;
@@ -58,8 +28,19 @@ async function displayCSV(csvData) {
         cell.classList.add("header-cell");
         cell.setAttribute("text-data", header.trim());
 
-        // Add listeners to communicate with the display box, which shows text
-        // of the headers
+        // Is the cell selected?
+        let isSelected = selected[headerIndex];
+        if (isSelected) {
+            cell.style.backgroundColor = "#A9A9A9";
+        }
+
+        /*
+        Add three listeners:
+        1. Mousover: Update the display box to show the header text
+        2. Mouseout: Clear the display box
+        3. Click: Index queryMap with the header's text and flip the value
+           on/off. Then re-compile the form
+        */
         cell.addEventListener("mouseover", () => {
             let cellText = cell.getAttribute("text-data");
             updateHeaderCellText(cellText);
@@ -67,15 +48,6 @@ async function displayCSV(csvData) {
         cell.addEventListener("mouseout", () => {
             updateHeaderCellText("");
         });
-
-        // Is the cell selected?
-        let isSelected = selected[headerIndex];
-        if (isSelected) {
-            cell.style.backgroundColor = "#D3D3D3";
-        }
-
-        // Add another listener, which flips the associated queryMap value
-        // on/off and re-compiles the form
         cell.addEventListener("click", () => {
             let cellText = cell.getAttribute("text-data");
             queryMap[cellText] = !queryMap[cellText];
@@ -96,22 +68,6 @@ async function displayCSV(csvData) {
             container.appendChild(cell);
         });
     });
-}
-
-function scaleAssociations(docAssoc) {
-    /*
-     * Scale the document associations to a [0,1] range
-     * Returns scaled document associations
-     * @param {Array} docAssoc - Document associations
-     */
-    let min = Math.min(...docAssoc);
-    let max = Math.max(...docAssoc);
-    docAssoc = docAssoc.map((value) => (value - min) / (max - min));
-
-    // Exacerbate differences between the values
-    docAssoc = docAssoc.map((value) => Math.pow(value, 3));
-
-    return docAssoc;
 }
 
 function updateHeaderCellText(text) {
@@ -144,27 +100,4 @@ function updateTermsDisplayed() {
         }
     }
 }
-
-function submitForm(formData) {
-    /*
-     * POST the form data to the Flask API
-     * Form data contains fields for normBy, csvData, and query
-     * @param {Object} formData - The form data
-     */
-    fetch(URL, {
-        method: "POST"
-        , body: formData
-    })
-    .then(response => response.json())
-    .then(responseData => {
-        // Upon receiving a response, get the document associations and
-        // reassign `docAssoc`. Display the CSV with the new association values
-        docAssoc = scaleAssociations(responseData['associations']);
-        displayCSV(csvData);
-    })
-    .catch(error => {
-        console.log("Error:", error);
-    });
-}
-
 
