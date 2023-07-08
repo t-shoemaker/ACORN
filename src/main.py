@@ -28,9 +28,9 @@ def csv2dtm(csv: str) -> np.matrix:
     csv = json.loads(csv)
     data = csv['data']
     data = [[val for val in row.values()] for row in data]
-    data = np.asarray(data, dtype=int)
+    data = np.asmatrix(data, dtype=int)
 
-    return np.matrix(data)
+    return data
 
 def format_query(Q: str) -> np.ndarray:
     """Convert the query to an array of 0s and 1s.
