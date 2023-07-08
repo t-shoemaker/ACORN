@@ -4,7 +4,7 @@
 import numpy as np
 from numpy.linalg import inv
 
-class Lambda:
+class LeakResistors:
     """A leak resistor matrix.
 
     Each document and term in the data has a corresponding resistor. We build a
@@ -13,10 +13,10 @@ class Lambda:
 
     Example leak resistor matrix:
 
-        [[1, 0, ..., 0],
-         [0, 1, ..., 0],
-         [0, 0, ..., 0],
-         [0, 0, ..., 1]]
+        [[0.1, 0.0, ..., 0.0],
+         [0.0, 0.1, ..., 0.0],
+         [0.0, 0.0, ..., 0.0],
+         [0.0, 0.0, ..., 0.1]]
 
     This is the Λ block in equation 9 of Giuliano (1963).
     """
@@ -33,7 +33,13 @@ class Lambda:
         if not 0 <= norm_by <= 1.:
             raise ValueError("Normalization must be between 0 and 1.")
 
+        self.size = size
         self.values = np.diag(np.repeat(norm_by, size))
+        self.values = self.values.astype('float32')
+
+    def __repr__(self) -> None:
+        """Block repr."""
+        return f"A ({self.size} x {self.size}) resistor matrix."
 
 class Block:
     """A connection block, which represents electrical conductances in a
@@ -75,7 +81,7 @@ class Block:
         """
         # Build the matrices
         self.num_doc, self.num_term = DTM.shape
-        self.C = DTM.copy()
+        self.C = DTM.copy().astype('float32')
         self.B = self.C.T
         self.E = self.C @ self.B
         self.D = self.B @ self.C
@@ -88,16 +94,20 @@ class Block:
 
         # Build identity matrices sized to document and term counts. We use
         # these to compute associations
-        self.Idoc = np.identity(self.num_doc)
-        self.Iterm = np.identity(self.num_term)
+        self.Idoc = np.identity(self.num_doc, dtype='float32')
+        self.Iterm = np.identity(self.num_term, dtype='float32')
 
         # Set the normalization value and create an empty matrix for the Block
         self.norm_by = norm_by
         self.block_size = self.num_doc + self.num_term
-        self.G = np.zeros((self.block_size, self.block_size))
+        self.G = np.zeros((self.block_size, self.block_size), dtype='float32')
 
         # Compose the block
         self.compose()
+
+    def __repr__(self) -> None:
+        """Block repr."""
+        return f"A ({self.block_size} x {self.block_size}) connection block."
 
     def compose(self, **kwargs) -> None:
         """Compose the Block.
@@ -129,10 +139,7 @@ class Block:
         block = np.block([[E, C], [B, D]])
 
         norm_by = kwargs.get('norm_by', self.norm_by)
-        if np.isclose(norm_by, self.norm_by):
-            norm_by = self.norm_by
-            
-        Λ = Lambda(self.block_size, norm_by)
+        Λ = LeakResistors(self.block_size, norm_by)
 
         self.G = Λ.values @ block
 
@@ -178,6 +185,10 @@ class Block:
         # Validate the query and compose the Block with our `norm_by` value
         if len(Q) > self.num_term:
             raise ValueError("Query length cannot exceed number of terms.")
+
+        if np.isclose(self.norm_by, norm_by):
+            norm_by = self.norm_by
+
         self.compose(norm_by=norm_by)
 
         # Decompose the Block and build the components of the equation
