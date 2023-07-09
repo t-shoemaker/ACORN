@@ -156,13 +156,12 @@ class ConnectionBlock(Block):
     ConnectionBlock retains the values of its input data and exposes methods
     for making queries.
 
-    When initialized, aach component in a ConnectionBlock is normalized to
+    When initialized, each component in a ConnectionBlock is normalized to
     unity (i.e. scaled from 0-1). A ConnectionBlock is further normalized by a
     ResistorBlock. This operation is implemented in the former's `.compose()`
     method; query methods may also change the normalization.
     """
-    def __init__(
-        self, DTM: np.ndarray, norm_by: float=1.) -> None:
+    def __init__(self, DTM: np.ndarray, norm_by: float=1.) -> None:
         """Construct the Block.
         
         Parameters
@@ -171,9 +170,6 @@ class ConnectionBlock(Block):
             The document-term matrix (a two-dimensional array of value counts)
         norm_by
             Normalization (0, 1) to apply
-        diagonal
-            Whether to fill only the diagonal of the ResistorBlock with the
-            normalization value
         """
         # Run the Block's constructor
         super().__init__(data=DTM)
@@ -190,7 +186,7 @@ class ConnectionBlock(Block):
         self.Idoc = np.identity(self.m, dtype='float32')
         self.Iterm = np.identity(self.n, dtype='float32')
 
-        # Set the normalization value  and compose the ConnectionBlock
+        # Set the normalization value and compose the ConnectionBlock
         self.norm_by = norm_by
         self.compose()
 
@@ -241,7 +237,7 @@ class ConnectionBlock(Block):
             raise ValueError("Query must contain 0 or 1 for all slots")
 
     def _set_state(self, norm_by: float, **kwargs):
-        """Set the state with a normalization value.
+        """Set the state with a normalization value and optional matrices.
 
         Parameters
         ---------
