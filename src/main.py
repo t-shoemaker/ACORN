@@ -7,13 +7,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
 
-from acorn import Block
+from acorn import ConnectionBlock
 
 app = Flask(__name__)
 cors = CORS(app)
 
-def csv2dtm(csv: str) -> np.matrix:
-    """Convert the stringified CSV into a matrix.
+def csv2dtm(csv: str) -> np.ndarray:
+    """Convert the stringified CSV into an array.
 
     Parameters
     ----------
@@ -28,7 +28,7 @@ def csv2dtm(csv: str) -> np.matrix:
     csv = json.loads(csv)
     data = csv['data']
     data = [[val for val in row.values()] for row in data]
-    data = np.asmatrix(data, dtype=int)
+    data = np.asarray(data, dtype='float32')
 
     return data
 
@@ -46,7 +46,7 @@ def format_query(Q: str) -> np.ndarray:
         One-hot encoded query
     """
     Q = json.loads(Q)
-    Q = np.asarray(Q, dtype=int)
+    Q = np.asarray(Q, dtype='float32')
 
     return Q
 
@@ -65,9 +65,9 @@ def process_form() -> None:
     norm_by = float(request.form.get('normBy'))
 
     # Set up a block and query it
-    block = Block(dtm)
+    block = ConnectionBlock(dtm, norm_by=norm_by)
     A = block.query(Q, norm_by)
-    A ,= A.tolist()
+    A = A.tolist()
 
     # Send the response back
     response = {

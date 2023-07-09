@@ -4,89 +4,182 @@
 import numpy as np
 from numpy.linalg import inv
 
-class LeakResistors:
-    """A leak resistor matrix.
-
-    Each document and term in the data has a corresponding resistor. We build a
-    (num_doc + num_term)-length array and diagonalize it to a matrix, which
-    will then be applied to a connection block.
-
-    Example leak resistor matrix:
-
-        [[0.1, 0.0, ..., 0.0],
-         [0.0, 0.1, ..., 0.0],
-         [0.0, 0.0, ..., 0.0],
-         [0.0, 0.0, ..., 0.1]]
-
-    This is the Λ block in equation 9 of Giuliano (1963).
-    """
-    def __init__(self, size: int, norm_by: float=1.) -> None:
-        """Construct the matrix.
-
-        Parameters
-        ----------
-        size
-            Length of the diagnoal
-        norm_by
-            Normalization (0, 1) on the resistors
-        """
-        if not 0 <= norm_by <= 1.:
-            raise ValueError("Normalization must be between 0 and 1.")
-
-        self.size = size
-        self.values = np.diag(np.repeat(norm_by, size))
-        self.values = self.values.astype('float32')
-
-    def __repr__(self) -> None:
-        """Block repr."""
-        return f"A ({self.size} x {self.size}) resistor matrix."
-
 class Block:
-    """A connection block, which represents electrical conductances in a
-    circuit.
+    """A base class circuit block, which represents electrical currents.
 
     This is the primary data structure in ACORN. It combines four different
     matrices: a document-term matrix (C), its transpose (B), a
-    document-document matrix (E), and a term-term matrix (D). All matrices are
-    normalized to unity (i.e. they are scaled from 0-1).
+    document-document matrix (E), and a term-term matrix (D).
 
     When composed, the full Block looks like this:
 
         [[E, C],
          [B, D]]
 
-    A Block is square matrix. Its dimensions are:
-    
-        (num_doc + num_term) x (num_doc + num_term)
+    A Block is a square matrix. Its dimensions are the sum of C's length and
+    width.
 
-    See the .compose() and .decompose() methods for information about how a
+    See the `.compose()` and `.decompose()` methods for information about how a
     Block's matrices are put together and broken apart when querying ACORN for
     document and word associations.
     """
-    def __init__(self, DTM: np.matrix, norm_by: float=1.) -> None:
-        """Construct the Block from a document-term matrix.
-
-        Three additional matrices are constructed when a Block is initialized:
-
-        B: Transpose of the document-term matrix
-        E: A document-document matrix
-        D: A term-term matrix
+    def __init__(self, data: np.ndarray) -> None:
+        """Construct the Block.
 
         Parameters
         ----------
-        DTM
-            The document-term matrix
-        norm_by
-            Normalization (0, 1) for the values
+        data
+            A two-dimensional array upon which to base the Block components
         """
-        # Build the matrices
-        self.num_doc, self.num_term = DTM.shape
-        self.C = DTM.copy().astype('float32')
+        # Block metadata. The attributes `.m` and `.n` refer to the number of
+        # documents and terms, respectively. The `.size` attribute is the full
+        # length/width of the Block, and `.kind` is a flag for the repr
+        self.m, self.n = data.shape
+        self.size = self.m + self.n
+        self.kind = "base"
+
+        # Build the primary Block components. See the `.compose()` method
+        self.C = data.copy().astype('float32')
         self.B = self.C.T
         self.E = self.C @ self.B
         self.D = self.B @ self.C
+
+        # The full Block
+        self.G = np.zeros((self.size, self.size), dtype='float32')
+
+    def __repr__(self) -> str:
+        """Block repr."""
+        return f"A ({self.size} x {self.size}) {self.kind} block."
+
+    @property
+    def state(self) -> np.ndarray:
+        """The current state of the Block."""
+        return self.G
+
+    def compose(self, **kwargs):
+        """Compose the Block.
+
+        This gathers together the E, C, B, and D matrices and arranges in them
+        in a big matrix.
+
+        Different query methods require certain alterations to the Block's
+        components (e.g. normalization, zeroed-out portions of the Block). This
+        method should be called by those queries to produce the appropriate
+        components before associations are calculated. Similarly, child classes
+        should compose the Block during construction if their `.__init__()`
+        methods differ from the parent class. The parent class does not run a
+        Block composition when initialized; instead, it creates a (size x size)
+        matrix of 0s.
+
+        If a Block is composed without any arguments, it will pull from its
+        original matrices. Re-compose the Block at the end of a query or other
+        operation to return the Block to its initializing state.
+
+        Composing the Block is equation 1 in Giuliano (1963).
+
+        Parameters
+        ----------
+        kwargs
+            Optionally include the E, C, B, or D matrices
+        """
+        E, C = kwargs.get('E', self.E), kwargs.get('C', self.C)
+        B, D = kwargs.get('B', self.B), kwargs.get('D', self.D)
+        block = np.block([[E, C], [B, D]])
+
+        self.G = block
+
+    def decompose(self) -> tuple[np.ndarray]:
+        """Decompose the Block into its constituent parts.
+
+        Run a Block decomposition whenever you want to access the component
+        matrices after they've been modified in some way by a query.
+
+        Returns
+        -------
+        E, C, B, D
+            Separated parts of the Block
+        """
+        E = self.G[:self.m, :self.m]
+        C = self.G[:self.m, self.m:]
+        B = self.G[self.m:, :self.m]
+        D = self.G[self.m:, self.m:]
+
+        return E, C, B, D
+
+class ResistorBlock(Block):
+    """A leak resistor Block.
+
+    Each document and term in the data has a corresponding resistor; this Block
+    builds a matrix that contains those values and affixes them to the
+    appropriate locations in that matrix.
+
+    Example ResistorBlock:
+
+        [[0.1, 0.0, ..., 0.0],
+         [0.0, 0.1, ..., 0.0],
+         [0.0, 0.0, ..., 0.0],
+         [0.0, 0.0, ..., 0.1]]
+
+    This is the Λ matrix in equation 9 of Giuliano (1963).
+    """
+    def __init__(self, data: np.ndarray, norm_by: float=1.) -> None:
+        """Construct the Block.
         
-        # Normalize all matrices to unity
+        Parameters
+        ----------
+        data
+             A two-dimensional array upon which to base the ResistorBlock
+             components
+        norm_by
+            Normalization (0, 1) on the resistors
+        """
+        # This matrix has everything zeroed-out except the diagonal
+        data = np.zeros_like(data)
+
+        # Run the Block's constructor
+        super().__init__(data=data)
+        self.kind = "resistor"
+        
+        # Fill the diagonal of E and D
+        self.norm_by = norm_by
+        np.fill_diagonal(self.E, self.norm_by)
+        np.fill_diagonal(self.D, self.norm_by)
+
+        # Run a composition because the components have changed
+        self.compose()
+
+class ConnectionBlock(Block):
+    """A connection Block, which represents electrical conductances in a
+    circuit.
+
+    All queries are made with this class. Unlike the base Block class, a
+    ConnectionBlock retains the values of its input data and exposes methods
+    for making queries.
+
+    When initialized, aach component in a ConnectionBlock is normalized to
+    unity (i.e. scaled from 0-1). A ConnectionBlock is further normalized by a
+    ResistorBlock. This operation is implemented in the former's `.compose()`
+    method; query methods may also change the normalization.
+    """
+    def __init__(
+        self, DTM: np.ndarray, norm_by: float=1.) -> None:
+        """Construct the Block.
+        
+        Parameters
+        ----------
+        DTM
+            The document-term matrix (a two-dimensional array of value counts)
+        norm_by
+            Normalization (0, 1) to apply
+        diagonal
+            Whether to fill only the diagonal of the ResistorBlock with the
+            normalization value
+        """
+        # Run the Block's constructor
+        super().__init__(data=DTM)
+        self.kind = "connection"
+
+        # Normalize the components
         self.C = self.C / np.max(self.C)
         self.B = self.B / np.max(self.B)
         self.E = self.E / np.max(self.E)
@@ -94,79 +187,85 @@ class Block:
 
         # Build identity matrices sized to document and term counts. We use
         # these to compute associations
-        self.Idoc = np.identity(self.num_doc, dtype='float32')
-        self.Iterm = np.identity(self.num_term, dtype='float32')
+        self.Idoc = np.identity(self.m, dtype='float32')
+        self.Iterm = np.identity(self.n, dtype='float32')
 
-        # Set the normalization value and create an empty matrix for the Block
+        # Set the normalization value  and compose the ConnectionBlock
         self.norm_by = norm_by
-        self.block_size = self.num_doc + self.num_term
-        self.G = np.zeros((self.block_size, self.block_size), dtype='float32')
-
-        # Compose the block
         self.compose()
 
-    def __repr__(self) -> None:
-        """Block repr."""
-        return f"A ({self.block_size} x {self.block_size}) connection block."
-
     def compose(self, **kwargs) -> None:
-        """Compose the Block.
+        """Compose the ConnectionBlock.
 
-        This gathers together the E, C, B, and D matrices and arranges them in
-        a big matrix. It then applies normalization from the leak resistor
-        matrix.
-
-        The Block should be composed whenever we want to access some
-        information about its connections. This is because the leak resistor
-        normalization values can change from query to query. Likewise, some
-        queries require adjustments to the component matrices of the Block. If
-        the Block is composed without any arguments, it will pull from the
-        original matrices as well as the original normalization value.
-        Re-compose the Block at the end of a query or other operation to return
-        the Block to its initializing state.
-
-        Composing the Block is equation 1 in Giuliano (1963). Applying
-        normalization to the Block is the second part of equation 9.
+        In addition to gathering together the E, C, B, and D matrices, this
+        method applies normalization from a ResistorBlock.
 
         Parameters
         ----------
         kwargs
-            Optionally include the E, C, B, or D matrices as well as a new
-            value for `norm_by`
+            Optionally include the E, C, B, or D matrices as well as a
+            normalization value (`norm_by`)
         """
-        E, C = kwargs.get('E', self.E), kwargs.get('C', self.C)
-        B, D = kwargs.get('B', self.B), kwargs.get('D', self.D)
-        block = np.block([[E, C], [B, D]])
+        # Run a composition
+        super().compose(**kwargs)
 
+        # Get the normalization value. Then construct a ResistorBlock
         norm_by = kwargs.get('norm_by', self.norm_by)
-        Λ = LeakResistors(self.block_size, norm_by)
+        Λ = ResistorBlock(self.C, norm_by=norm_by)
 
-        self.G = Λ.values @ block
+        # Normalize with values from the ResistorBlock
+        self.G = Λ.state @ self.G
 
-    def decompose(self) -> tuple[np.matrix]:
-        """Decompose the Block into its constituent parts.
+    def _validate_query(self, Q: np.ndarray):
+        """Validate a query.
 
-        Run a Block decomposition whenver you want to access the component
-        matrices after they've been modified in some way by normalization or
-        other value updates.
+        A valid query is one with a length of self.n slots, which contain
+        either 0s or 1s.
 
-        Returns
-        -------
-        E, C, B, D
-            Separated parts of the Block
+        Parameters
+        ----------
+        Q
+            The query vector
+
+        Raises
+        ------
+        ValueError
+            If the query length does not match the number of terms
+        ValueError
+            If the query contains numbers other than 0 or 1
         """
-        E = self.G[:self.num_doc, :self.num_doc]
-        C = self.G[:self.num_doc, self.num_doc:]
-        B = self.G[self.num_doc:, :self.num_doc]
-        D = self.G[self.num_doc:, self.num_doc:]
+        if len(Q) != self.n:
+            raise ValueError("Query length must equal the number of terms")
 
-        return E, C, B, D
+        if not np.all(Q <= 1):
+            raise ValueError("Query must contain 0 or 1 for all slots")
 
-    def query(self, Q: np.ndarray, norm_by: float=1.) -> np.matrix:
-        """Find document assocations for a query.
+    def _set_state(self, norm_by: float, **kwargs):
+        """Set the state with a normalization value.
 
-        A query is a num_term-length array of 0s and 1s. 1 means a term has
-        been selected, while 0 is a deselected term.
+        Parameters
+        ---------
+        norm_by
+            Normalization (0, 1) for the Block
+        kwargs
+            Any other arguments for Block composition
+        """
+        close = np.isclose(self.norm_by, norm_by)
+        if not close and kwargs:
+            self.compose(norm_by=norm_by, **kwargs)
+        elif not close and not kwargs:
+            self.compose(norm_by=norm_by)
+        elif close and kwargs:
+            self.compose(**kwargs)
+        else:
+            pass
+
+    def query(self, Q: np.ndarray, norm_by: float=1.) -> np.ndarray:
+        """Find document associations for a query.
+
+        A query is a num_term-length (self.n) array of 0s and 1s. 1 means a
+        term has been selected, while 0 is a deselected term. The resultant
+        associations are a num_doc-length (self.m) array of floats.
 
         This is equation 12 in Giuliano (1963).
 
@@ -175,21 +274,16 @@ class Block:
         Q
             The query vector
         norm_by
-            Normalization (0, 1) values for the Block
-        
+            Normalization (0, 1) for the Block
+
         Returns
         -------
         A
             Document association values for the query
         """
-        # Validate the query and compose the Block with our `norm_by` value
-        if len(Q) > self.num_term:
-            raise ValueError("Query length cannot exceed number of terms.")
-
-        if np.isclose(self.norm_by, norm_by):
-            norm_by = self.norm_by
-
-        self.compose(norm_by=norm_by)
+        # Validate the query and check whether we need to re-compose
+        self._validate_query(Q)
+        self._set_state(norm_by)
 
         # Decompose the Block and build the components of the equation
         E, C, B, D = self.decompose()
@@ -198,12 +292,14 @@ class Block:
             self.Iterm - (B @ inv(self.Idoc - E)) @ (C @ inv(self.Iterm - D))
         )
 
-        # Re-compose the Block from the initializing data
-        self.compose()
+        # Re-compose the Block from the initializing data if we're working with
+        # a different `norm_by` than the initializing one
+        if not np.isclose(self.norm_by, norm_by):
+            self.compose()
 
         return facA @ facB @ Q
 
-    def query_DTM(self, Q: np.ndarray, norm_by: float=1.) -> np.matrix:
+    def query_DTM(self, Q: np.ndarray, norm_by: float=1.) -> np.ndarray:
         """Query document associations assuming no information about term-term
         or document-document interaciton is available.
 
@@ -221,14 +317,17 @@ class Block:
         A
             Document association values for the query
         """
-        # Since we're discounting any information we'd otherwise gain from the
-        # document-document and term-term matrices, we zero these out
-        E0 = np.zeros((self.num_doc, self.num_doc))
-        D0 = np.zeros((self.num_term, self.num_term))
+        # Validate the query. Then, since we're discounting any information
+        # we'd otherwise gain from the document-docment and term-term matrices,
+        # set the state with zeroed-out versions of them
+        self._validate_query(Q)
+        self._set_state(
+            E=np.zeros_like(self.E)
+            , D=np.zeros_like(self.D)
+            , norm_by=norm_by
+        )
 
-        # Compose the Block with these zeroed matrices, then decompose it.
-        # Build the components of the equation after that
-        self.compose(E=E0, D=D0, norm_by=norm_by)
+        # Decompose the Block and build the pieces of the equation
         E, C, B, D = self.decompose()
 
         facA = C @ inv(self.Iterm - (B @ C))
@@ -238,14 +337,14 @@ class Block:
 
         return facA @ Q
 
-    def word_associations(self) -> np.matrix:
+    def word_associations(self) -> np.ndarray:
         """Find word-word associations in a Block.
 
         This is discussed after equation 12 in Giuliano (1963, 230).
 
         Returns
         -------
-        associations
+        A
             Word associations
         """
         # Decompose the Block and build the components of the equation
@@ -257,14 +356,14 @@ class Block:
 
         return facA @ facB
 
-    def document_associations(self) -> np.matrix:
+    def document_associations(self) -> np.ndarray:
         """Find document-document associations in a Block.
 
         This is discussed after equation 12 in Giuliano (1963, 230).
 
         Returns
         -------
-        associations
+        A
             Document associations
         """
         # Decompose the Block and retrieve the document-document matrix
