@@ -233,7 +233,7 @@ class ConnectionBlock(Block):
         if len(Q) != self.n:
             raise ValueError("Query length must equal the number of terms")
 
-        if not np.all(Q <= 1):
+        if not np.all((Q == 0) | (Q == 1)):
             raise ValueError("Query must contain 0 or 1 for all slots")
 
     def _set_state(self, norm_by: float, **kwargs):
