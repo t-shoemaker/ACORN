@@ -157,8 +157,8 @@ class ConnectionBlock(Block):
     for making queries.
 
     When initialized, each component in a ConnectionBlock is normalized to
-    unity (i.e. scaled from 0-1). A ConnectionBlock is further normalized by a
-    ResistorBlock. This operation is implemented in the former's `.compose()`
+    unity (i.e. L2/Euclidean norm). A ConnectionBlock is further normalized by
+    a ResistorBlock. This operation is implemented in the former's `.compose()`
     method; query methods may also change the normalization.
     """
     def __init__(self, DTM: np.ndarray, norm_by: float=1.) -> None:
@@ -176,10 +176,10 @@ class ConnectionBlock(Block):
         self.kind = "connection"
 
         # Normalize the components
-        self.C = self.C / np.max(self.C)
-        self.B = self.B / np.max(self.B)
-        self.E = self.E / np.max(self.E)
-        self.D = self.D / np.max(self.D)
+        self.C = self._norm(self.C)
+        self.B = self._norm(self.B)
+        self.E = self._norm(self.E)
+        self.D = self._norm(self.D)
 
         # Build identity matrices sized to document and term counts. We use
         # these to compute associations
@@ -211,6 +211,26 @@ class ConnectionBlock(Block):
 
         # Normalize with values from the ResistorBlock
         self.G = Λ.state @ self.G
+
+    def _norm(self, data: np.array, axis: int=1) -> np.array:
+        """Normalize data to unity.
+
+        Parameters
+        ----------
+        data
+            The data to norm
+        axis
+            Axis to apply the norm
+
+        Returns
+        -------
+        normalized
+            Normed data
+        """
+        l2 = np.linalg.norm(data, axis=1, keepdims=True)
+        normalized = data / l2
+
+        return normalized
 
     def _validate_query(self, Q: np.ndarray):
         """Validate a query.
