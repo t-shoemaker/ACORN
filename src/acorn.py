@@ -317,7 +317,7 @@ class ConnectionBlock(Block):
 
     def query_DTM(self, Q: np.ndarray, norm_by: float=1.) -> np.ndarray:
         """Query document associations assuming no information about term-term
-        or document-document interaciton is available.
+        or document-document interaction is available.
 
         This is equation 13 in Giuliano (1963).
 
@@ -334,8 +334,8 @@ class ConnectionBlock(Block):
             Document association values for the query
         """
         # Validate the query. Then, since we're discounting any information
-        # we'd otherwise gain from the document-docment and term-term matrices,
-        # set the state with zeroed-out versions of them
+        # we'd otherwise gain from the document-document and term-term
+        # matrices, set the state with zeroed-out versions of them
         self._validate_query(Q)
         self._set_state(
             E=np.zeros_like(self.E)

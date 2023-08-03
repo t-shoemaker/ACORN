@@ -36,7 +36,7 @@ async function displayCSV(csvData) {
 
         /*
         Add three listeners:
-        1. Mousover: Update the display box to show the header text
+        1. Mouseover: Update the display box to show the header text
         2. Mouseout: Clear the display box
         3. Click: Index queryMap with the header's text and flip the value
            on/off. Then re-compile the form
