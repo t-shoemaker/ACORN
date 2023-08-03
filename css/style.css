@@ -8,15 +8,20 @@
   flex: 20%;
   display: flex;
   flex-direction: column;
-  height: 75vh;
+  height: 90vh;
   padding: 10px;
   border: 2px solid black;
   border-radius: 5px;
+  overflow: scroll;
+}
+
+.panel-right-section {
+  margin: 0em;
 }
 
 /* Displays the text of the header cells */
 #header-display {
-  height: 100px;
+  min-height: 50px;
   border: 1px solid black;
   border-radius: 5px;
   margin-bottom: 10px;
@@ -52,14 +57,17 @@
 
 /* Selected terms */
 #terms-displayed {
-  display: flex;
-  flex-direction: column;
-  align-items: left;
+  min-height: 150px;
   padding: 5px;
   height: 100%;
   border: 1px solid black;
   border-radius: 5px;
-  overflow: auto;
+  overflow: scroll;
+
+  /* Text handling */
+  display: flex;
+  flex-direction: column;
+  align-items: left;
 }
 
 /* DTM display */

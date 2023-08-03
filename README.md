@@ -1,9 +1,13 @@
 ACORN
 =====
 
-Description and demos to come. For now, here's a screenshot:
+Description and demos to come. For now, here's the original:
 
-![An example document-term matrix displayed with ACORN](docs/acorn_example.png)
+![The original ACORN system](docs/acorn_original.png)
+
+And here's a screenshot of the implementation:
+
+![An example document-term matrix displayed with ACORN](docs/acorn_new.png)
 
 ### Installing the web app
 

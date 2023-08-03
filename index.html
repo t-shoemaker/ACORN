@@ -32,16 +32,30 @@
     <div class="panel" style="display: flex;">
         <div class="grid-container" id="dtmContainer"></div>
         <div class="panel-right">
-            <h3>ACORN</h3>
-            <p>
-                An implementation of 
-                <a href="https://ieeexplore.ieee.org/document/4323077"
-                target="_blank">Giuliano (1963)</a>. A longer description and
-                demo notebook to come.
-            </p>
-            <label for="header-display"><b>Header Cell Text</b></label>
-            <div id="header-display"></div>
-            <form class="dtm-form" id="pageForm">
+            <div class="panel-right-section">
+                <h3>ACORN</h3>
+                <p>
+                    An implementation of the Associative Content Retrieval
+                    Network, a queryable document-term matrix described in <a
+                    href="https://apps.dtic.mil/sti/citations/AD0290313"
+                    target="_blank">Giuliano and Jones (1962)</a> and <a
+                    href="https://ieeexplore.ieee.org/document/4323077"
+                    target="_blank">Giuliano (1963)</a>. 
+                </p>
+                <p>
+                    The first row represents corpus terms; others are
+                    documents. Numbers in cells show how many times a term
+                    appears in a document. Select (i.e. query) terms to view
+                    their associations with documents. Adjusting the knob below
+                    changes the directness of associations: "narrow"
+                    associations squash the indirectness of "free" ones. 
+                </p>
+            </div>
+            <div class="panel-right-section">
+                <label for="header-display"><b>Header Cell Text</b></label>
+                <div id="header-display"></div>
+            </div>
+            <form class="dtm-form panel-right-section" id="pageForm">
                 <label for="normBy"><b>Association Type</b></label>
                 <input
                     type="range"
@@ -61,8 +75,10 @@
                     <span id="knob-max">Free</span>
                 </div>
             </form>
-            <label for="terms-displayed"><b>Selected Terms</b></label>
-            <ul id="terms-displayed"></ul>
+            <div class="panel-right-section">
+                <label for="terms-displayed"><b>Selected Terms</b></label>
+                <ul id="terms-displayed"></ul>
+            </div>
         </div>
     </div>
 
