@@ -7,9 +7,10 @@ from numpy.linalg import inv
 class Block:
     """A base class circuit block, which represents electrical currents.
 
-    This is the primary data structure in ACORN. It combines four different
-    matrices: a document-term matrix (C), its transpose (B), a
-    document-document matrix (E), and a term-term matrix (D).
+    This is the primary data structure in ACORN as it is described in Giuliano
+    (1963). It combines four different matrices: a document-term matrix (C),
+    its transpose (B), a document-document matrix (E), and a term-term matrix
+    (D).
 
     When composed, the full Block looks like this:
 
@@ -22,6 +23,12 @@ class Block:
     See the `.compose()` and `.decompose()` methods for information about how a
     Block's matrices are put together and broken apart when querying ACORN for
     document and word associations.
+
+    References
+    ----------
+    Giuliano, Vincent E. “Analog Networks for Word Association.” IEEE
+        Transactions on Military Electronics MIL–7, no. 2/3 (April 1963):
+        221–34. https://doi.org/10.1109/TME.1963.4323077.
     """
     def __init__(self, data: np.ndarray) -> None:
         """Construct the Block.
@@ -30,7 +37,16 @@ class Block:
         ----------
         data
             A two-dimensional array upon which to base the Block components
+
+        Raises
+        ------
+        TypeError
+            If the initializing data isn't a NumPy array
         """
+        # First, validate that we're working with NumPy arrays
+        if not isinstance(data, np.ndarray):
+            raise TypeError("Initialize this class with a NumPy array")
+
         # Block metadata. The attributes `.m` and `.n` refer to the number of
         # documents and terms, respectively. The `.size` attribute is the full
         # length/width of the Block, and `.kind` is a flag for the repr
@@ -246,9 +262,8 @@ class ConnectionBlock(Block):
         Raises
         ------
         ValueError
-            If the query length does not match the number of terms
-        ValueError
-            If the query contains numbers other than 0 or 1
+            If the query length does not match the number of terms or if the
+            query contains numbers others than 0 or 1
         """
         if len(Q) != self.n:
             raise ValueError("Query length must equal the number of terms")

@@ -1,0 +1,14 @@
+[project]
+name = "ACORN"
+version = "0.0.1"
+authors = [{name="Tyler Shoemaker", email="tshoemaker@ucdavis.edu"}]
+description = "ACORN, an analog document-term matrix from the 1960s"
+readme = "README.md"
+requires-python = ">=3.7"
+
+[build-system]
+requires = ["setuptools>=61.0", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+"Homepage" = "https://github.com/t-shoemaker/ACORN"
