@@ -184,13 +184,13 @@ class ResistorBlock(Block):
     def _doc_norm(self) -> np.ndarray:
         """Compute normalization values for the documents.
 
-        Use the result of this functoin as a drop-in for D in the final Block
+        Use the result of this function as a drop-in for D in the final Block
         composition.
 
         Returns
         -------
         eq8
-            A diagtonal matrix of normalized document values
+            A diagonal matrix of normalized document values
         """
         eq8 = 1 / (self.norm_by + np.sum(self.B, 1) + np.sum(self.D))
         eq8 = np.diag(eq8)
@@ -206,8 +206,9 @@ class ConnectionBlock(Block):
     for making queries.
 
     A ConnectionBlock is normalized by a ResistorBlock. This operation is
-    implemented in the ConnectionBlock's `.compose()` method; query methods may
-    also change the normalization.
+    implemented in the ConnectionBlock's `.compose()` method. Query methods may
+    also update the norming value for the ResistorBlock, which will in turn
+    update the ConnectionBlock's state.
     """
     def __init__(self, DTM: np.ndarray, norm_by: float=1.) -> None:
         """Construct the Block.
