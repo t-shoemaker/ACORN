@@ -31,19 +31,25 @@ function makeQueryMap(csvData) {
     return queryMap;
 }
 
-function scaleAssociations(docAssoc, exp = 3) {
+function scaleAssociations(docAssoc, scaleBy = 2) {
     /*
      * Scale the document associations to a [0,1] range
      * @param {Array} docAssoc - Document associations
-     * @param {Number} exp - Exponent by which to scale the associations
+     * @param {Number scaleBy - The scaling factor
      * @return {Array} scaledDA - Scaled document associations
      */
     var min = Math.min(...docAssoc);
     var max = Math.max(...docAssoc);
-    var scaledDA = docAssoc.map((value) => (value - min) / (max - min));
+    var range = max - min;
 
-    // Exacerbate differences between the values
-    scaledDA = scaledDA.map((value) => Math.pow(value, exp));
+    // Increase differences between array elements
+    var scaledDA = docAssoc.map((val) => {
+        var scaled = (val - min) * scaleBy;
+        return scaled / range;
+    });
+
+    // Ensure that our values are in the right range
+    scaledDA = scaledDA.map((val) => Math.min(1, Math.max(0, val)));
 
     return scaledDA;
 }

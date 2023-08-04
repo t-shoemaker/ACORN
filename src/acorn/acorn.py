@@ -122,17 +122,17 @@ class Block:
 
 class ResistorBlock(Block):
     """A leak resistor Block.
+    
+    Each document and term in the data has a corresponding resistor, which
+    applies a normalization value. This Block performs that normalization and
+    then builds a matrix where λ = normed terms and γ = normed documents:
 
-    Each document and term in the data has a corresponding resistor; this Block
-    builds a matrix that contains those values and affixes them to the
-    appropriate locations in that matrix.
+        [[λ, 0],
+         [0, γ]]
 
-    Example ResistorBlock:
-
-        [[0.1, 0.0, ..., 0.0],
-         [0.0, 0.1, ..., 0.0],
-         [0.0, 0.0, ..., 0.0],
-         [0.0, 0.0, ..., 0.1]]
+    The row sums of the final matrix should have row sums normalized to unity
+    or less. The same goes for when a ResistorBlock is used to normalize a
+    ConectionBlock (see the latter's `.compose()` function).
 
     This is the Λ matrix in equation 9 of Giuliano (1963).
     """
@@ -142,25 +142,60 @@ class ResistorBlock(Block):
         Parameters
         ----------
         data
-             A two-dimensional array upon which to base the ResistorBlock
-             components
+            A two-dimensional array upon which to base the ResistorBlock
+            components
         norm_by
             Normalization (0, 1) on the resistors
         """
-        # This matrix has everything zeroed-out except the diagonal
-        data = np.zeros_like(data)
-
-        # Run the Block's constructor
         super().__init__(data=data)
         self.kind = "resistor"
-        
-        # Fill the diagonal of E and D
+
+        # Set the normalization value and normalize the term-term and
+        # document-document matrices
         self.norm_by = norm_by
-        np.fill_diagonal(self.E, self.norm_by)
-        np.fill_diagonal(self.D, self.norm_by)
+        self.E = self._term_norm()
+        self.D = self._doc_norm()
+
+        # The other two matrices contain 0s
+        self.C = np.zeros_like(self.C)
+        self.B = np.zeros_like(self.B)
 
         # Run a composition because the components have changed
         self.compose()
+
+    def _term_norm(self) -> np.ndarray:
+        """Compute normalization values for the terms.
+
+        Use the result of this function as a drop-in for E in the final Block
+        composition.
+
+        This is equation 7 in Giuliano (1963).
+
+        Returns
+        -------
+        eq7
+            A diagonal matrix of normalized term values
+        """
+        eq7 = 1 / (self.norm_by + np.sum(self.E, 1) + np.sum(self.C, 1))
+        eq7 = np.diag(eq7)
+
+        return eq7
+        
+    def _doc_norm(self) -> np.ndarray:
+        """Compute normalization values for the documents.
+
+        Use the result of this functoin as a drop-in for D in the final Block
+        composition.
+
+        Returns
+        -------
+        eq8
+            A diagtonal matrix of normalized document values
+        """
+        eq8 = 1 / (self.norm_by + np.sum(self.B, 1) + np.sum(self.D))
+        eq8 = np.diag(eq8)
+
+        return eq8
 
 class ConnectionBlock(Block):
     """A connection Block, which represents electrical conductances in a
@@ -170,10 +205,9 @@ class ConnectionBlock(Block):
     ConnectionBlock retains the values of its input data and exposes methods
     for making queries.
 
-    When initialized, each component in a ConnectionBlock is normalized to
-    unity (i.e. L2/Euclidean norm). A ConnectionBlock is further normalized by
-    a ResistorBlock. This operation is implemented in the former's `.compose()`
-    method; query methods may also change the normalization.
+    A ConnectionBlock is normalized by a ResistorBlock. This operation is
+    implemented in the ConnectionBlock's `.compose()` method; query methods may
+    also change the normalization.
     """
     def __init__(self, DTM: np.ndarray, norm_by: float=1.) -> None:
         """Construct the Block.
@@ -188,12 +222,6 @@ class ConnectionBlock(Block):
         # Run the Block's constructor
         super().__init__(data=DTM)
         self.kind = "connection"
-
-        # Normalize the components
-        self.C = self._norm(self.C)
-        self.B = self._norm(self.B)
-        self.E = self._norm(self.E)
-        self.D = self._norm(self.D)
 
         # Build identity matrices sized to document and term counts. We use
         # these to compute associations
@@ -225,24 +253,6 @@ class ConnectionBlock(Block):
 
         # Normalize with values from the ResistorBlock
         self.G = Λ.state @ self.G
-
-    def _norm(self, data: np.ndarray) -> np.array:
-        """Normalize data to unity.
-
-        Parameters
-        ----------
-        data
-            The data to norm
-
-        Returns
-        -------
-        normalized
-            Normed data
-        """
-        l2 = np.linalg.norm(data, axis=1, keepdims=True)
-        normalized = data / l2
-
-        return normalized
 
     def _validate_query(self, Q: np.ndarray) -> np.ndarray:
         """Validate a query.
