@@ -45,7 +45,7 @@ class Block:
         """
         # First, validate that we're working with NumPy arrays
         if not isinstance(data, np.ndarray):
-            raise TypeError("Initialize this class with a NumPy array")
+            data = np.asarray(data, dtype='float32')
 
         # Block metadata. The attributes `.m` and `.n` refer to the number of
         # documents and terms, respectively. The `.size` attribute is the full
@@ -72,7 +72,7 @@ class Block:
         """The current state of the Block."""
         return self.G
 
-    def compose(self, **kwargs):
+    def compose(self, **kwargs) -> None:
         """Compose the Block.
 
         This gathers together the E, C, B, and D matrices and arranges in them
@@ -100,9 +100,7 @@ class Block:
         """
         E, C = kwargs.get('E', self.E), kwargs.get('C', self.C)
         B, D = kwargs.get('B', self.B), kwargs.get('D', self.D)
-        block = np.block([[E, C], [B, D]])
-
-        self.G = block
+        self.G = np.block([[E, C], [B, D]])
 
     def decompose(self) -> tuple[np.ndarray]:
         """Decompose the Block into its constituent parts.
@@ -228,15 +226,13 @@ class ConnectionBlock(Block):
         # Normalize with values from the ResistorBlock
         self.G = Λ.state @ self.G
 
-    def _norm(self, data: np.array, axis: int=1) -> np.array:
+    def _norm(self, data: np.ndarray) -> np.array:
         """Normalize data to unity.
 
         Parameters
         ----------
         data
             The data to norm
-        axis
-            Axis to apply the norm
 
         Returns
         -------
@@ -248,7 +244,7 @@ class ConnectionBlock(Block):
 
         return normalized
 
-    def _validate_query(self, Q: np.ndarray):
+    def _validate_query(self, Q: np.ndarray) -> np.ndarray:
         """Validate a query.
 
         A valid query is one with a length of self.n slots, which contain
@@ -262,16 +258,21 @@ class ConnectionBlock(Block):
         Raises
         ------
         ValueError
-            If the query length does not match the number of terms or if the
-            query contains numbers others than 0 or 1
+            If the query length does not match the number of unique terms or if
+            the query contains numbers others than 0 or 1
         """
+        if not isinstance(Q, np.ndarray):
+            Q = np.asarray(Q, dtype='float32')
+
         if len(Q) != self.n:
-            raise ValueError("Query length must equal the number of terms")
+            raise ValueError(f"Query length must be {self.n}")
 
         if not np.all((Q == 0) | (Q == 1)):
             raise ValueError("Query must contain 0 or 1 for all slots")
 
-    def _set_state(self, norm_by: float, **kwargs):
+        return Q
+
+    def _set_state(self, norm_by: float, **kwargs) -> None:
         """Set the state with a normalization value and optional matrices.
 
         Parameters
@@ -313,7 +314,7 @@ class ConnectionBlock(Block):
             Document association values for the query
         """
         # Validate the query and check whether we need to re-compose
-        self._validate_query(Q)
+        Q = self._validate_query(Q)
         self._set_state(norm_by)
 
         # Decompose the Block and build the components of the equation
@@ -351,7 +352,7 @@ class ConnectionBlock(Block):
         # Validate the query. Then, since we're discounting any information
         # we'd otherwise gain from the document-document and term-term
         # matrices, set the state with zeroed-out versions of them
-        self._validate_query(Q)
+        Q = self._validate_query(Q)
         self._set_state(
             E=np.zeros_like(self.E)
             , D=np.zeros_like(self.D)
