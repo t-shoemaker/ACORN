@@ -26,7 +26,7 @@ Steps
 
 1. Install the conda environment
    ```sh
-   conda env create --name acorn --file=env.yml
+   conda env create --name=acorn --file=env.yml
    ```
 2. Activate the environment
    ```sh
@@ -51,8 +51,7 @@ Steps
 2. From the root of the repository, create a new directory called `assets/` and
    a subdirectory therein, `data/`
    ```sh
-   mkdir assets
-   mkdir assets/data
+   mkdir -p assets/data
    ```
 3. Download the [JS dependencies](#app-dependencies) and the [font file as well
    as some sample data][data]. Place everything but the data into `assets/`.
@@ -72,7 +71,7 @@ Steps
 
 The app requires two external JS libraries, which should be placed in `assets/`
 (see step 2 above). If needed, see the header section in `index.html` for
-filenames
+file names
 
 1. [Papa Parse (minified)](https://www.papaparse.com)
 2. [input-knob.js](https://g200kg.github.io/input-knobs/)

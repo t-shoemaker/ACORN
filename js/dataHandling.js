@@ -35,7 +35,7 @@ function scaleAssociations(docAssoc, scaleBy = 2) {
     /*
      * Scale the document associations to a [0,1] range
      * @param {Array} docAssoc - Document associations
-     * @param {Number scaleBy - The scaling factor
+     * @param {Number} scaleBy - The scaling factor
      * @return {Array} scaledDA - Scaled document associations
      */
     var min = Math.min(...docAssoc);

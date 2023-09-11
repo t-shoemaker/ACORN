@@ -37,11 +37,6 @@ class Block:
         ----------
         data
             A two-dimensional array upon which to base the Block components
-
-        Raises
-        ------
-        TypeError
-            If the initializing data isn't a NumPy array
         """
         # First, validate that we're working with NumPy arrays
         if not isinstance(data, np.ndarray):
