@@ -38,7 +38,7 @@ class Block:
         data
             A two-dimensional array upon which to base the Block components
         """
-        # First, validate that we're working with NumPy arrays
+        # First, ensure that we're working with NumPy arrays
         if not isinstance(data, np.ndarray):
             data = np.asarray(data, dtype='float32')
 
@@ -131,7 +131,7 @@ class ResistorBlock(Block):
 
     This is the Λ matrix in equation 9 of Giuliano (1963).
     """
-    def __init__(self, data: np.ndarray, norm_by: float=1.) -> None:
+    def __init__(self, data: np.ndarray, norm_by: float=1.0) -> None:
         """Construct the Block.
         
         Parameters
@@ -205,7 +205,7 @@ class ConnectionBlock(Block):
     also update the norming value for the ResistorBlock, which will in turn
     update the ConnectionBlock's state.
     """
-    def __init__(self, DTM: np.ndarray, norm_by: float=1.) -> None:
+    def __init__(self, DTM: np.ndarray, norm_by: float=1.0) -> None:
         """Construct the Block.
         
         Parameters
@@ -298,7 +298,7 @@ class ConnectionBlock(Block):
         else:
             pass
 
-    def query(self, Q: np.ndarray, norm_by: float=1.) -> np.ndarray:
+    def query(self, Q: np.ndarray, norm_by: float=1.0) -> np.ndarray:
         """Find document associations for a query.
 
         A query is a num_term-length (self.n) array of 0s and 1s. 1 means a
@@ -325,8 +325,8 @@ class ConnectionBlock(Block):
 
         # Decompose the Block and build the components of the equation
         E, C, B, D = self.decompose()
-        facA = inv(self.Idoc - E) @ (C @ inv(self.Iterm - D))
-        facB = inv(
+        eq12a = inv(self.Idoc - E) @ (C @ inv(self.Iterm - D))
+        eq12b = inv(
             self.Iterm - (B @ inv(self.Idoc - E)) @ (C @ inv(self.Iterm - D))
         )
 
@@ -335,9 +335,9 @@ class ConnectionBlock(Block):
         if not np.isclose(self.norm_by, norm_by):
             self.compose()
 
-        return facA @ facB @ Q
+        return eq12a @ eq12b @ Q
 
-    def query_DTM(self, Q: np.ndarray, norm_by: float=1.) -> np.ndarray:
+    def query_DTM(self, Q: np.ndarray, norm_by: float=1.0) -> np.ndarray:
         """Query document associations assuming no information about term-term
         or document-document interaction is available.
 
@@ -368,12 +368,12 @@ class ConnectionBlock(Block):
         # Decompose the Block and build the pieces of the equation
         E, C, B, D = self.decompose()
 
-        facA = C @ inv(self.Iterm - (B @ C))
+        eq13 = C @ inv(self.Iterm - (B @ C))
 
         # Re-compose the Block from the initializing data
         self.compose()
 
-        return facA @ Q
+        return eq13 @ Q
 
     def word_associations(self) -> np.ndarray:
         """Find word-word associations in a Block.
@@ -387,12 +387,12 @@ class ConnectionBlock(Block):
         """
         # Decompose the Block and build the components of the equation
         E, C, B, D = self.decompose()
-        facA = inv(self.Iterm - D)
-        facB = inv(
+        eq12a = inv(self.Iterm - D)
+        eq12b = inv(
             self.Iterm - ((B @ inv(self.Idoc - E)) @ (C @ inv(self.Iterm - D)))
         )
 
-        return facA @ facB
+        return eq12a @ eq12b
 
     def document_associations(self) -> np.ndarray:
         """Find document-document associations in a Block.
