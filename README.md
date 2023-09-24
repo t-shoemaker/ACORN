@@ -1,11 +1,123 @@
 ACORN
 =====
 
-Description and demos to come. For now, here's the original:
+This is a Python implementation of the Associative Content Retrieval Network,
+or ACORN. The original system, developed by Paul Jones and Vincent Giuliano at
+Arthur D. Little Inc. in the 1960s, was a large electrical circuit. Jones and
+Giuliano used it to model statistical associations in corpora; its posts
+represented terms and documents and the conductance on the wires connecting
+those posts represented term counts. Those familiar with NLP methods will
+recognize ACORN as a document--term matrix (DTM)---but an analog one, which
+circumvented the shortcomings of mainframe DTMs (namely limited memory capacity
+and computation time).
+
+My implementation is based on two publications:
+
+1. Paul E. Jones and Vincent E. Giuliano, ["Linear Associative Information
+   Retrieval"][https://apps.dtic.mil/sti/tr/pdf/AD0290313.pdf)
+2. Vincent E. Giuliano, ["Analog Networks for Word
+   Association"](https://ieeexplore.ieee.org/document/4323077/)
+
+See Appendix I in the latter for equations that describe ACORN. Most of the
+code in this repository follows those.
+
+How It Worked
+-------------
+
+Working on the basis of contracts with the US Air Force, Jones and Giuliano
+developed four different versions of ACORN. The first one is below.
 
 ![The original ACORN system](docs/acorn_original.png)
 
-And here's a screenshot of the implementation:
+The code in this repository implements ACORN's circuitry and the linear
+transformations Jones and Giuliano devised to model term and document
+associations. ACORN worked on the basis of queries. Users would select a term
+or set of terms and send their selection to the network, which would return
+associations; light bulbs on the system would brighten or dim depending on
+association strength (these bulbs are the ancestors to the common strategy of
+visualizing attention heads in modern Transformers networks with shading).
+There are three association types available with ACORN:
+
+1. Term--document associations
+2. Term--term associations
+3. Document--document associations
+
+Usage
+-----
+
+The Python version of ACORN exposes these association types with a series of
+methods attached to a `ConnectionBlock` class. Initialize it like so:
+
+```python
+import numpy as np
+from acorn import ConnectionBlock
+
+dtm = np.array([[1, 1, 0], [0, 1, 1], [1, 1, 1]])
+block = ConnectionBlock(dtm)
+print(block)
+>>> A (6 x 6) connection block.
+```
+
+Return document associations for a query:
+
+```python
+q = np.array([1, 0, 0])
+block.query(q)
+>>> array([0.3808383 , 0.22932315, 0.33950618])
+```
+
+Return document associations that ignore additional context supplied by
+term--term and document--document associations
+
+```python
+block.query_DTM(q)
+>>> array([0.12770842, 0.00192225, 0.09331173])
+```
+
+Return term--term associations with no query specified
+
+```python
+block.word_associations()
+>>> array([[1.1796384 , 0.20690882, 0.11903221],
+           [0.19705604, 1.2913104 , 0.19705604],
+           [0.1190322 , 0.20690885, 1.1796383 ]], dtype=float32)
+```
+
+Return document--document associations with no query specified:
+
+```python
+block.document_associations()
+>>> array([[1.5714285 , 0.42857143, 0.6875    ],
+           [0.42857143, 1.5714285 , 0.6875    ],
+           [0.5       , 0.5       , 1.71875   ]], dtype=float32)
+```
+
+An key functionality for ACORN is its ability to set a normalization value when
+building a corpus or when making a query. Normalization boosts/dampens the
+effects of distant associations. A smaller value sets a higher cutoff for final
+association rankings, while a larger one lowers that cutoff and will return a
+wider set of associations. Under the hood, the code relies on a separate
+`ResistorBlock` to perform normalization. For the original system, Jones and
+Giuliano added normalization with a set of resistors.
+
+Set a normalization value when initializing ACORN:
+
+```python
+block = ConnectionBlock(dtm, norm_by = 0.4)
+```
+
+Set a normalization value for a query:
+
+```python
+block.query(q, norm_by = 0.33)
+>>> array([0.49405882, 0.32601407, 0.43807861])
+```
+
+Installing ACORN into a Python environment will enable to you use it for corpus
+analysis work. The metrics it provides are somewhat similar to tf-idf values.
+But I've also built a small app, which allows for direct querying. This is much
+closer to the way Jones and Giuliano used the original system. Instructions for
+installing both the Python code and the app are below.
 
 ![An example document-term matrix displayed with ACORN](docs/acorn_new.png)
 
