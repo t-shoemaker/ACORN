@@ -14,7 +14,7 @@ and computation time).
 My implementation is based on two publications:
 
 1. Paul E. Jones and Vincent E. Giuliano, ["Linear Associative Information
-   Retrieval"][https://apps.dtic.mil/sti/tr/pdf/AD0290313.pdf)
+   Retrieval"](https://apps.dtic.mil/sti/tr/pdf/AD0290313.pdf)
 2. Vincent E. Giuliano, ["Analog Networks for Word
    Association"](https://ieeexplore.ieee.org/document/4323077/)
 
@@ -178,6 +178,13 @@ Steps
 
 [pyweb]: https://realpython.com/python-http-server
 [data]: http://tylershoemaker.info/data/ACORN
+
+### Using Your Own Data
+
+If you'd like to use your own data, format it as a document--term term matrix
+and save it as a CSV in `assets/data`. Be sure to modify the file path in
+`index.html` (line 89). ACORN can handle arbitrarily large DTMs, but the app's
+performance will lag considerably when your vocabulary size surpasses 100.
 
 ### App Dependencies
 
