@@ -49,47 +49,47 @@ The Python version of ACORN exposes these association types with a series of
 methods attached to a `ConnectionBlock` class. Initialize it like so:
 
 ```python
-import numpy as np
-from acorn import ConnectionBlock
+>>> import numpy as np
+>>> from acorn import ConnectionBlock
 
-dtm = np.array([[1, 1, 0], [0, 1, 1], [1, 1, 1]])
-block = ConnectionBlock(dtm)
-print(block)
->>> A (6 x 6) connection block.
+>>> dtm = np.array([[1, 1, 0], [0, 1, 1], [1, 1, 1]])
+>>> block = ConnectionBlock(dtm)
+>>> print(block)
+A (6 x 6) connection block.
 ```
 
 Return document associations for a query:
 
 ```python
-q = np.array([1, 0, 0])
-block.query(q)
->>> array([0.3808383 , 0.22932315, 0.33950618])
+>>> q = np.array([1, 0, 0])
+>>> block.query(q)
+array([0.3808383 , 0.22932315, 0.33950618])
 ```
 
 Return document associations that ignore additional context supplied by
 term--term and document--document associations:
 
 ```python
-block.query_DTM(q)
->>> array([0.12770842, 0.00192225, 0.09331173])
+>>> block.query_DTM(q)
+array([0.12770842, 0.00192225, 0.09331173])
 ```
 
 Return term--term associations with no query specified:
 
 ```python
-block.word_associations()
->>> array([[1.1796384 , 0.20690882, 0.11903221],
-           [0.19705604, 1.2913104 , 0.19705604],
-           [0.1190322 , 0.20690885, 1.1796383 ]], dtype=float32)
+>>> block.word_associations()
+array([[1.1796384 , 0.20690882, 0.11903221],
+       [0.19705604, 1.2913104 , 0.19705604],
+       [0.1190322 , 0.20690885, 1.1796383 ]], dtype=float32)
 ```
 
 Return document--document associations with no query specified:
 
 ```python
-block.document_associations()
->>> array([[1.5714285 , 0.42857143, 0.6875    ],
-           [0.42857143, 1.5714285 , 0.6875    ],
-           [0.5       , 0.5       , 1.71875   ]], dtype=float32)
+>>> block.document_associations()
+array([[1.5714285 , 0.42857143, 0.6875    ],
+       [0.42857143, 1.5714285 , 0.6875    ],
+       [0.5       , 0.5       , 1.71875   ]], dtype=float32)
 ```
 
 An key functionality for ACORN is its capacity for normalization. Normalization
@@ -102,14 +102,14 @@ Jones and Giuliano added normalization with a set of 'leak' resistors.
 Set a normalization value when initializing ACORN:
 
 ```python
-block = ConnectionBlock(dtm, norm_by = 0.4)
+>>> block = ConnectionBlock(dtm, norm_by = 0.4)
 ```
 
 Or set a normalization value for a specific query:
 
 ```python
-block.query(q, norm_by = 0.33)
->>> array([0.49405882, 0.32601407, 0.43807861])
+>>> block.query(q, norm_by = 0.33)
+array([0.49405882, 0.32601407, 0.43807861])
 ```
 
 Installing ACORN into a Python environment will enable to you use it for corpus
