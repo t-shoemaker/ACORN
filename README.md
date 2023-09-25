@@ -24,8 +24,8 @@ code in this repository follows those.
 How It Worked
 -------------
 
-Working on the basis of contracts with the US Air Force, Jones and Giuliano
-developed four different versions of ACORN. The first one is below.
+Working under contract with the US Air Force, Jones and Giuliano developed four
+different versions of ACORN. The first one is below.
 
 ![The original ACORN system](docs/acorn_original.png)
 
@@ -67,14 +67,14 @@ block.query(q)
 ```
 
 Return document associations that ignore additional context supplied by
-term--term and document--document associations
+term--term and document--document associations:
 
 ```python
 block.query_DTM(q)
 >>> array([0.12770842, 0.00192225, 0.09331173])
 ```
 
-Return term--term associations with no query specified
+Return term--term associations with no query specified:
 
 ```python
 block.word_associations()
@@ -92,13 +92,12 @@ block.document_associations()
            [0.5       , 0.5       , 1.71875   ]], dtype=float32)
 ```
 
-An key functionality for ACORN is its ability to set a normalization value when
-building a corpus or when making a query. Normalization boosts/dampens the
-effects of distant associations. A smaller value sets a higher cutoff for final
-association rankings, while a larger one lowers that cutoff and will return a
-wider set of associations. Under the hood, the code relies on a separate
-`ResistorBlock` to perform normalization. For the original system, Jones and
-Giuliano added normalization with a set of resistors.
+An key functionality for ACORN is its capacity for normalization. Normalization
+boosts/dampens the effects of distant associations. A smaller value sets a
+higher cutoff for association rankings, while a larger value lowers that cutoff
+and will return a wider set of associations. Under the hood the code relies on
+a separate `ResistorBlock` to perform normalization. For the original system,
+Jones and Giuliano added normalization with a set of 'leak' resistors.
 
 Set a normalization value when initializing ACORN:
 
@@ -106,7 +105,7 @@ Set a normalization value when initializing ACORN:
 block = ConnectionBlock(dtm, norm_by = 0.4)
 ```
 
-Set a normalization value for a query:
+Or set a normalization value for a specific query:
 
 ```python
 block.query(q, norm_by = 0.33)
@@ -181,10 +180,12 @@ Steps
 
 ### Using Your Own Data
 
-If you'd like to use your own data, format it as a document--term term matrix
-and save it as a CSV in `assets/data`. Be sure to modify the file path in
-`index.html` (line 89). ACORN can handle arbitrarily large DTMs, but the app's
-performance will lag considerably when your vocabulary size surpasses 100.
+If you'd like to use your own data, format it as a document--term matrix and
+save it as a CSV file in `assets/data`. The first row of your CSV should
+contain your terms. Do not add a separate column for document ids. Be sure to
+modify the file path in `index.html`. ACORN can handle arbitrarily large DTMs,
+but the app's performance will lag considerably when your vocabulary size
+surpasses 100.
 
 ### App Dependencies
 
