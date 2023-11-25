@@ -4,6 +4,7 @@
 import numpy as np
 from numpy.linalg import inv
 
+
 class Block:
     """A base class circuit block, which represents electrical currents.
 
@@ -30,6 +31,7 @@ class Block:
         Transactions on Military Electronics MIL–7, no. 2/3 (April 1963):
         221–34. https://doi.org/10.1109/TME.1963.4323077.
     """
+
     def __init__(self, data: np.ndarray) -> None:
         """Construct the Block.
 
@@ -40,7 +42,7 @@ class Block:
         """
         # First, ensure that we're working with NumPy arrays
         if not isinstance(data, np.ndarray):
-            data = np.asarray(data, dtype='float32')
+            data = np.asarray(data, dtype="float32")
 
         # Block metadata. The attributes `.m` and `.n` refer to the number of
         # documents and terms, respectively. The `.size` attribute is the full
@@ -50,13 +52,13 @@ class Block:
         self.kind = "base"
 
         # Build the primary Block components. See the `.compose()` method
-        self.C = data.copy().astype('float32')
+        self.C = data.copy().astype("float32")
         self.B = self.C.T
         self.E = self.C @ self.B
         self.D = self.B @ self.C
 
         # The full Block
-        self.G = np.zeros((self.size, self.size), dtype='float32')
+        self.G = np.zeros((self.size, self.size), dtype="float32")
 
     def __repr__(self) -> str:
         """Block repr."""
@@ -93,8 +95,8 @@ class Block:
         kwargs
             Optionally include the E, C, B, or D matrices
         """
-        E, C = kwargs.get('E', self.E), kwargs.get('C', self.C)
-        B, D = kwargs.get('B', self.B), kwargs.get('D', self.D)
+        E, C = kwargs.get("E", self.E), kwargs.get("C", self.C)
+        B, D = kwargs.get("B", self.B), kwargs.get("D", self.D)
         self.G = np.block([[E, C], [B, D]])
 
     def decompose(self) -> tuple[np.ndarray]:
@@ -108,16 +110,17 @@ class Block:
         E, C, B, D
             Separated parts of the Block
         """
-        E = self.G[:self.m, :self.m]
-        C = self.G[:self.m, self.m:]
-        B = self.G[self.m:, :self.m]
-        D = self.G[self.m:, self.m:]
+        E = self.G[: self.m, : self.m]
+        C = self.G[: self.m, self.m :]
+        B = self.G[self.m :, : self.m]
+        D = self.G[self.m :, self.m :]
 
         return E, C, B, D
 
+
 class ResistorBlock(Block):
     """A leak resistor Block.
-    
+
     Each document and term in the data has a corresponding resistor, which
     applies a normalization value. This Block performs that normalization and
     then builds a matrix where λ = normed terms and γ = normed documents:
@@ -131,9 +134,10 @@ class ResistorBlock(Block):
 
     This is the Λ matrix in equation 9 of Giuliano (1963).
     """
-    def __init__(self, data: np.ndarray, norm_by: float=1.0) -> None:
+
+    def __init__(self, data: np.ndarray, norm_by: float = 1.0) -> None:
         """Construct the Block.
-        
+
         Parameters
         ----------
         data
@@ -175,7 +179,7 @@ class ResistorBlock(Block):
         eq7 = np.diag(eq7)
 
         return eq7
-        
+
     def _doc_norm(self) -> np.ndarray:
         """Compute normalization values for the documents.
 
@@ -192,6 +196,7 @@ class ResistorBlock(Block):
 
         return eq8
 
+
 class ConnectionBlock(Block):
     """A connection Block, which represents electrical conductances in a
     circuit.
@@ -205,9 +210,10 @@ class ConnectionBlock(Block):
     also update the norming value for the ResistorBlock, which will in turn
     update the ConnectionBlock's state.
     """
-    def __init__(self, DTM: np.ndarray, norm_by: float=1.0) -> None:
+
+    def __init__(self, DTM: np.ndarray, norm_by: float = 1.0) -> None:
         """Construct the Block.
-        
+
         Parameters
         ----------
         DTM
@@ -221,8 +227,8 @@ class ConnectionBlock(Block):
 
         # Build identity matrices sized to document and term counts. We use
         # these to compute associations
-        self.Idoc = np.identity(self.m, dtype='float32')
-        self.Iterm = np.identity(self.n, dtype='float32')
+        self.Idoc = np.identity(self.m, dtype="float32")
+        self.Iterm = np.identity(self.n, dtype="float32")
 
         # Set the normalization value and compose the ConnectionBlock
         self.norm_by = norm_by
@@ -244,7 +250,7 @@ class ConnectionBlock(Block):
         super().compose(**kwargs)
 
         # Get the normalization value. Then construct a ResistorBlock
-        norm_by = kwargs.get('norm_by', self.norm_by)
+        norm_by = kwargs.get("norm_by", self.norm_by)
         Λ = ResistorBlock(self.C, norm_by=norm_by)
 
         # Normalize with values from the ResistorBlock
@@ -268,7 +274,7 @@ class ConnectionBlock(Block):
             the query contains numbers others than 0 or 1
         """
         if not isinstance(Q, np.ndarray):
-            Q = np.asarray(Q, dtype='float32')
+            Q = np.asarray(Q, dtype="float32")
 
         if len(Q) != self.n:
             raise ValueError(f"Query length must be {self.n}")
@@ -298,7 +304,7 @@ class ConnectionBlock(Block):
         else:
             pass
 
-    def query(self, Q: np.ndarray, norm_by: float=1.0) -> np.ndarray:
+    def query(self, Q: np.ndarray, norm_by: float = 1.0) -> np.ndarray:
         """Find document associations for a query.
 
         A query is a num_term-length (self.n) array of 0s and 1s. 1 means a
@@ -337,7 +343,7 @@ class ConnectionBlock(Block):
 
         return eq12a @ eq12b @ Q
 
-    def query_DTM(self, Q: np.ndarray, norm_by: float=1.0) -> np.ndarray:
+    def query_DTM(self, Q: np.ndarray, norm_by: float = 1.0) -> np.ndarray:
         """Query document associations assuming no information about term-term
         or document-document interaction is available.
 
@@ -360,9 +366,7 @@ class ConnectionBlock(Block):
         # matrices, set the state with zeroed-out versions of them
         Q = self._validate_query(Q)
         self._set_state(
-            E=np.zeros_like(self.E)
-            , D=np.zeros_like(self.D)
-            , norm_by=norm_by
+            E=np.zeros_like(self.E), D=np.zeros_like(self.D), norm_by=norm_by
         )
 
         # Decompose the Block and build the pieces of the equation
@@ -406,5 +410,5 @@ class ConnectionBlock(Block):
         """
         # Decompose the Block and retrieve the document-document matrix
         E, *_ = self.decompose()
-        
+
         return inv(self.Idoc - E)

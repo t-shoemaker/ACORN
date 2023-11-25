@@ -12,6 +12,7 @@ from acorn import ConnectionBlock
 app = Flask(__name__)
 cors = CORS(app)
 
+
 def csv2dtm(csv: str) -> np.ndarray:
     """Convert the stringified CSV into an array.
 
@@ -26,11 +27,12 @@ def csv2dtm(csv: str) -> np.ndarray:
         The array
     """
     csv = json.loads(csv)
-    data = csv['data']
+    data = csv["data"]
     data = [[val for val in row.values()] for row in data]
-    data = np.asarray(data, dtype='float32')
+    data = np.asarray(data, dtype="float32")
 
     return data
+
 
 def format_query(Q: str) -> np.ndarray:
     """Convert the query to an array of 0s and 1s.
@@ -46,23 +48,24 @@ def format_query(Q: str) -> np.ndarray:
         One-hot encoded query
     """
     Q = json.loads(Q)
-    Q = np.asarray(Q, dtype='float32')
+    Q = np.asarray(Q, dtype="float32")
 
     return Q
 
-@app.route('/process-form', methods=['POST'])
+
+@app.route("/process-form", methods=["POST"])
 def process_form() -> None:
     """Process the form data.
-    
+
     There are three form fields:
     1. CSV data
     2. A query
     3. A normalization value
     """
     # Get the form data
-    dtm = csv2dtm(request.form.get('csvData'))
-    Q = format_query(request.form.get('query'))
-    norm_by = float(request.form.get('normBy'))
+    dtm = csv2dtm(request.form.get("csvData"))
+    Q = format_query(request.form.get("query"))
+    norm_by = float(request.form.get("normBy"))
 
     # Set up a block and query it
     block = ConnectionBlock(dtm, norm_by=norm_by)
@@ -70,13 +73,10 @@ def process_form() -> None:
     A = A.tolist()
 
     # Send the response back
-    response = {
-        'status': 'success'
-        , 'associations': A
-    }
+    response = {"status": "success", "associations": A}
 
     return jsonify(response)
 
-if __name__ == '__main__':
-    app.run()
 
+if __name__ == "__main__":
+    app.run()

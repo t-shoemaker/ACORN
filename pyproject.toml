@@ -14,5 +14,10 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 include = ["acorn*"]
 
+[tool.ruff]
+target-version = "py311"
+line-length = 79
+indent-width = 4
+
 [project.urls]
 "Homepage" = "https://github.com/t-shoemaker/ACORN"
