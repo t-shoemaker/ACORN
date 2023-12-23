@@ -1,20 +1,16 @@
-async function displayCSV(csvData) {
+async function displayCSV(csvData, dtmContainer = "dtmContainer") {
     /*
      * Display the CSV as an HTML grid
      * The table treats header row cells separately from the rest of the cells,
      * adding multiple listeners to handle UI components
      * @param {Object} csvData - Papa Parse CSV
+     * @param {String} dtmContainer - Container name
      */
     var headers = csvData.meta.fields;
     var data = csvData.data;
 
-    // Access the grid container and clear it
-    var container = document.getElementById("dtmContainer");
-    container.innerHTML = "";
-
-    // Find the number of columns for the grid
-    var numCols = headers.length;
-    container.style.gridTemplateColumns = `repeat(${numCols}, minmax(5%, 1fr))`;
+    // Build the grid
+    grid = buildGrid(dtmContainer, headers.length);
 
     // Retrieve the values of queryMap. We use these to determine whether or
     // not a header cell should be highlighted
@@ -54,7 +50,7 @@ async function displayCSV(csvData) {
             compileForm();
             updateTermsDisplayed();
         });
-        container.appendChild(cell);
+        grid.appendChild(cell);
     });
 
     // Create the data cells
@@ -65,9 +61,26 @@ async function displayCSV(csvData) {
             cell.textContent = value;
             let alpha = docAssoc[rowIndex];
             cell.style.backgroundColor = `rgba(160, 32, 240, ${alpha})`;
-            container.appendChild(cell);
+            grid.appendChild(cell);
         });
     });
+}
+
+function buildGrid(dtmContainer, numCols) {
+    /*
+     * Build the HTML grid
+     * @param {String} dtmContainer - Container name
+     * @param {Number} numCols - Number of of columns
+     * @return {Object} container - The HTML container
+     */
+    // Access the grid container and clear it
+    var container = document.getElementById(dtmContainer);
+    container.innerHTML = "";
+
+    // Find the number of columns for the grid
+    container.style.gridTemplateColumns = `repeat(${numCols}, minmax(5%, 1fr))`;
+
+    return container;
 }
 
 function updateHeaderCellText(text) {
