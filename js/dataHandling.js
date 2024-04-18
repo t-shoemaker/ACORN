@@ -73,8 +73,8 @@ function submitForm(formData) {
      * @return {Object} responseData - Document associations from the API
      */
     fetch(URL, {
-        method: "POST"
-        , body: formData
+        method: "POST",
+        body: formData
     })
     .then(response => response.json())
     .then(responseData => {
